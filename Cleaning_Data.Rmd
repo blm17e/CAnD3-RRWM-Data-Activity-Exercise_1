@@ -1,0 +1,57 @@
+---
+title: "Cleaning_Data_Exercise1_RRWM"
+author: "Bertram Melix"
+date: "2023-09-23"
+output: html_document
+---
+
+```{r}
+library(dplyr)
+library(knitr)
+library(gt)
+library(tidyverse)
+library(haven)
+library(skimr)
+library(naniar)
+library(Hmisc)
+library(sjlabelled)
+library(gt)
+library(gtsummary)
+library(table1)
+```
+
+
+# General Social Survey - Family (GSS) - Dataset includes 20,602 observations and 1,316 variables. 
+```{r}
+gss <- read.csv("C:/Users/bertr/Desktop/CAnD3 Program Application/Exercise1/CAND3 Data/CAND3 Data/GSS 2017 - Family, Cycle 31/gss-12M0025-E-2017-c-31_F1.csv")
+```
+
+
+# Here we filter to keep relevant data points for the analysis - omitting obervations where respondents did not answer, responded with "dont know" or "Valid Skip" unless otherwise noted. 
+```{r}
+gss_clean <- gss %>%
+  filter(
+    SRH_110 <= 5, # Self Rated Health - Excellent (1) to Poor (5)
+    TTLINCG2 <= 6, # Income of Respondent - <$25,000 (1) to $125,000 or more (5) 
+    HSDSIZEC <= 6, # Household Size of Respondent - One person household (1) to Six or more person household (6)
+    LUC_RST <= 3, # Population center indicator - Larger urban population centres (1), Rural areas and small population centres (2), Prince Edward Island (3)
+    GU_110 <= 3, # Birth or adoption - Yes (both birth parents) (1), Yes (both adoptive parents (2), No (3)
+    APARDIVC <= 97, # Age of respondent when parents divorced - capped at age 35 and older (0-35yrs), Valid Skip (96), &  Don't Know (97)
+    ODR_10 <= 2, # Owned or Renter - Owned by (1) and Rented (2)
+    UHW_16GR <= 6, # Average number of hours worked/week - 0 hour (1) to 50.1 hours and more (5), Valid Skip (6)? 
+    BRTHMACR <= 6 # Place of birth of respondent - Americas (1), Europe (2), Africa (3), Asia (4), Oceania and others (5)
+  ) %>%
+  select(SRH_110, TTLINCG2, HSDSIZEC, LUC_RST, GU_110, UHW_16GR, APARDIVC, ODR_10, BRTHMACR)  %>%
+rename(
+    srh = SRH_110, 
+    totinc = TTLINCG2, 
+    hhsize = HSDSIZEC, 
+    rururb = LUC_RST, 
+    adopt = GU_110, 
+    avghw = UHW_16GR, 
+    divorce = APARDIVC, 
+    hmown = ODR_10, 
+    bplace = BRTHMACR
+  )
+```
+
