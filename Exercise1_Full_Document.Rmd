@@ -1,0 +1,187 @@
+---
+title: "Exercise 1 - Full Document"
+author: "Bertram Melix"
+date: "2023-09-23"
+output: html_document
+---
+
+```{r}
+library(dplyr)
+library(knitr)
+library(gt)
+library(tidyverse)
+library(haven)
+library(skimr)
+library(naniar)
+library(Hmisc)
+library(sjlabelled)
+library(gt)
+library(gtsummary)
+library(table1)
+```
+
+
+# General Social Survey - Family (GSS) - Dataset includes 20,602 observations and 1,316 variables. 
+```{r}
+gss <- read.csv("C:/Users/bertr/Desktop/CAnD3 Program Application/Exercise1/CAND3 Data/CAND3 Data/GSS 2017 - Family, Cycle 31/gss-12M0025-E-2017-c-31_F1.csv")
+```
+
+
+# Here we filter to keep relevant data points for the analysis - omitting obervations where respondents did not answer, responded with "dont know" or "Valid Skip" unless otherwise noted. 
+```{r}
+gss_clean <- gss %>%
+  filter(
+    SRH_110 <= 5, # Self Rated Health - Excellent (1) to Poor (5)
+    TTLINCG2 <= 6, # Income of Respondent - <$25,000 (1) to $125,000 or more (5) 
+    HSDSIZEC <= 6, # Household Size of Respondent - One person household (1) to Six or more person household (6)
+    LUC_RST <= 3, # Population center indicator - Larger urban population centres (1), Rural areas and small population centres (2), Prince Edward Island (3)
+    GU_110 <= 3, # Birth or adoption - Yes (both birth parents) (1), Yes (both adoptive parents (2), No (3)
+    APARDIVC <= 97, # Age of respondent when parents divorced - capped at age 35 and older (0-35yrs), Valid Skip (96), &  Don't Know (97)
+    ODR_10 <= 2, # Owned or Renter - Owned by (1) and Rented (2)
+    UHW_16GR <= 6, # Average number of hours worked/week - 0 hour (1) to 50.1 hours and more (5), Valid Skip (6)? 
+    BRTHMACR <= 6 # Place of birth of respondent - Americas (1), Europe (2), Africa (3), Asia (4), Oceania and others (5)
+  ) %>%
+  select(SRH_110, TTLINCG2, HSDSIZEC, LUC_RST, GU_110, UHW_16GR, APARDIVC, ODR_10, BRTHMACR)  %>%
+rename(
+    srh = SRH_110, 
+    totinc = TTLINCG2, 
+    hhsize = HSDSIZEC, 
+    rururb = LUC_RST, 
+    adopt = GU_110, 
+    avghw = UHW_16GR, 
+    divorce = APARDIVC, 
+    hmown = ODR_10, 
+    bplace = BRTHMACR
+  )
+```
+
+
+
+# Create a summary table with mean and standard deviation for each variable
+```{r}
+summary_table <- gss_clean %>%
+  summarise(
+    `Self-rated Health` = mean(srh),
+    `Income of Respondent` = mean(totinc),
+    `Household Size` = mean(hhsize),
+    `Rural/Urban` = mean(rururb),
+    `Family Living Situation` = mean(adopt),
+    `Average Number of Hours Worked/Week` = mean(avghw),
+    `Dwelling - Owned or Rented` = mean(hmown),
+    `Place of Birth of Respondent` = mean(bplace)
+  ) %>%
+  gather(key = "Variable", value = "Mean") %>%
+  arrange(Variable)
+
+# calculate mean and std dev for divorce variable (exclude values greater than 35)
+divorce_summary <- gss_clean %>%            
+  filter(divorce <= 35) %>%
+  summarise(
+    `Age of Respondent When Parents Divorced` = mean(divorce, na.rm = TRUE)
+  ) %>%
+  gather(key = "Variable", value = "Mean")
+
+
+summary_table <- bind_rows(summary_table, divorce_summary)
+
+
+std_dev_table <- gss_clean %>%
+  summarise(
+    `Self-rated Health` = sd(srh),
+    `Income of Respondent` = sd(totinc),
+    `Household Size` = sd(hhsize),
+    `Rural/Urban` = sd(rururb),
+    `Family Living Situation` = sd(adopt),
+    `Age of Respondent When Parents Divorced` = sd(divorce),
+    `Average Number of Hours Worked/Week` = sd(avghw),
+    `Dwelling - Owned or Rented` = sd(hmown),
+    `Place of Birth of Respondent` = sd(bplace)
+  ) %>%
+  gather(key = "Variable", value = "Std. Dev.") %>%
+  arrange(Variable)
+
+the_table <- merge(summary_table, std_dev_table, by = "Variable")
+
+
+kable(the_table, caption = "Table 1. Descriptive Statistics for select variables from the General Social Survey, Cycle 31, 2017: Family")
+```
+
+
+
+# Binary recoding
+```{r}
+gss_clean <- gss_clean %>%
+  mutate(
+    adopt = ifelse(adopt == 3, 1, 0), # Setting values 'No' as 1, and 'Yes' (adoptive or birth) to 0
+    hmown = ifelse(hmown == 2, 1, 0), # Setting values 'Rented' as 1, 'Owned by' as 0
+  )
+```
+
+
+# Nominal Recoding
+```{r}
+gss_clean <- gss_clean %>%
+  mutate(bplace = as.factor(bplace),
+    rururb = as.factor(rururb)
+  )
+```
+
+
+# Formula for OLS
+```{r}
+srh.form <- srh ~ hhsize + rururb + adopt + divorce + avghw + hmown + bplace + totinc
+```
+
+
+# OLS
+```{r}
+srh.lm<- lm(srh.form, data= gss_clean)
+summary(srh.lm)
+```
+
+# Table 2 - OLS results (Self Rated Health)
+```{r}
+srh_results <- summary(srh.lm)$coefficients 
+
+# Convert matrix to data frame and add Variable column from row names
+regression_table <- as.data.frame(srh_results)
+regression_table$Variable <- rownames(srh_results)
+
+# Reorder the columns
+regression_table <- regression_table %>%
+  select(Variable, Estimate, `Std. Error`, `t value`, `Pr(>|t|)`)
+
+# View the table
+regression_table
+
+# Display the table using kable
+knitr::kable(regression_table, caption = "Table 2. Linear Regression Results for SRH on select variables from the General Social Survey, Cycle 31, 2017: Family")
+
+```
+
+
+-----------------------------------------------------------------------------------------------------------
+# Code Graveyard
+
+
+# Ordinal Recoding for Ordinal Logistic Regression
+```{r}
+library(dplyr)
+
+gss_clean <- gss_clean %>%
+  mutate(
+    srh = ordered(srh, levels = c(1, 2, 3, 4, 5)),
+    totinc = ordered(totinc, levels = c(1, 2, 3, 4, 5, 6)),
+    avghw = ordered(avghw, levels = c(1, 2, 3, 4, 5, 6))
+  )
+```
+
+
+
+```{r}
+library(MASS)
+
+srh.olr <- polr(srh.form, data = gss_clean, Hess = TRUE)
+summary(srh.olr)
+```
+
