@@ -20,6 +20,7 @@ regression_table <- regression_table %>%
   select(Variable, Estimate, `Std. Error`, `t value`, `Pr(>|t|)`)
 
 # View the table
+
 regression_table
 
 # Display the table using kable
