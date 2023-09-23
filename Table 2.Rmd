@@ -11,19 +11,15 @@ editor_options:
 ```{r}
 srh_results <- summary(srh.lm)$coefficients 
 
-# Convert matrix to data frame and add Variable column from row names
 regression_table <- as.data.frame(srh_results)
 regression_table$Variable <- rownames(srh_results)
 
-# Reorder the columns
 regression_table <- regression_table %>%
   select(Variable, Estimate, `Std. Error`, `t value`, `Pr(>|t|)`)
 
-# View the table
 
 regression_table
 
-# Display the table using kable
 knitr::kable(regression_table, caption = "Table 2. Linear Regression Results for SRH on select variables from the General Social Survey, Cycle 31, 2017: Family")
 
 ```
