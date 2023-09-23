@@ -1,0 +1,55 @@
+---
+title: "Table 1"
+author: "Bertram Melix"
+date: "2023-09-23"
+output: html_document
+---
+
+# Create a summary table with mean and standard deviation for each variable
+```{r}
+summary_table <- gss_clean %>%
+  summarise(
+    `Self-rated Health` = mean(srh),
+    `Income of Respondent` = mean(totinc),
+    `Household Size` = mean(hhsize),
+    `Rural/Urban` = mean(rururb),
+    `Family Living Situation` = mean(adopt),
+    `Average Number of Hours Worked/Week` = mean(avghw),
+    `Dwelling - Owned or Rented` = mean(hmown),
+    `Place of Birth of Respondent` = mean(bplace)
+  ) %>%
+  gather(key = "Variable", value = "Mean") %>%
+  arrange(Variable)
+
+# calculate mean and std dev for divorce variable (exclude values greater than 35)
+divorce_summary <- gss_clean %>%            
+  filter(divorce <= 35) %>%
+  summarise(
+    `Age of Respondent When Parents Divorced` = mean(divorce, na.rm = TRUE)
+  ) %>%
+  gather(key = "Variable", value = "Mean")
+
+
+summary_table <- bind_rows(summary_table, divorce_summary)
+
+
+std_dev_table <- gss_clean %>%
+  summarise(
+    `Self-rated Health` = sd(srh),
+    `Income of Respondent` = sd(totinc),
+    `Household Size` = sd(hhsize),
+    `Rural/Urban` = sd(rururb),
+    `Family Living Situation` = sd(adopt),
+    `Age of Respondent When Parents Divorced` = sd(divorce),
+    `Average Number of Hours Worked/Week` = sd(avghw),
+    `Dwelling - Owned or Rented` = sd(hmown),
+    `Place of Birth of Respondent` = sd(bplace)
+  ) %>%
+  gather(key = "Variable", value = "Std. Dev.") %>%
+  arrange(Variable)
+
+the_table <- merge(summary_table, std_dev_table, by = "Variable")
+
+
+kable(the_table, caption = "Table 1. Descriptive Statistics for select variables from the General Social Survey, Cycle 31, 2017: Family")
+```
