@@ -1,4 +1,4 @@
-# CAnD3-RRWM-Data-Activity
+# CAnD3 - Research replicability & Workflow Management - ExerciseR
   Research Replicability and Workflow Management - Exercise 1
 
 ## Objective:
